@@ -6,16 +6,15 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[300],
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
+            // Le texte utilise le style headlineMedium du thème global
+            Text(
               'PICTION.IA.RY',
-              style: TextStyle(
-                fontSize: 36,
-                fontWeight: FontWeight.bold,
+              style: Theme.of(context).textTheme.headlineMedium!.copyWith(
+                fontSize: 36, // Ajustement spécifique pour ce texte
               ),
             ),
             const SizedBox(height: 60),
@@ -23,8 +22,9 @@ class LoginScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: TextField(
                 decoration: InputDecoration(
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
                   labelText: 'Saisir le pseudo',
+                  labelStyle: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),
             ),
@@ -35,7 +35,6 @@ class LoginScreen extends StatelessWidget {
               },
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-                textStyle: const TextStyle(fontSize: 18),
               ),
               child: const Text('Enregistrer'),
             ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'ui/screens/loginscreen.dart';
 import 'ui/screens/dashboard.dart';
-
+import 'ui/screens/challenge_input_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -13,11 +13,53 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'PICTION.IA.RY',
+      title: 'Piction.ia.ry',
       theme: ThemeData(
         primarySwatch: Colors.blue,
+        scaffoldBackgroundColor: Colors.grey[300],
+        textTheme: const TextTheme(
+          headlineMedium: TextStyle(
+            fontSize: 24.0,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+          headlineSmall: TextStyle(
+            fontSize: 22.0,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+          bodyMedium: TextStyle(
+            fontSize: 18.0,
+            color: Colors.black,
+          ),
+          bodySmall: TextStyle(
+            fontSize: 16.0,
+            color: Colors.black,
+          ),
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          titleTextStyle: TextStyle(
+            color: Colors.black,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+          iconTheme: IconThemeData(color: Colors.black),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue,
+            foregroundColor: Colors.white,
+            textStyle: const TextStyle(fontSize: 18),
+            padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 24.0),
+          ),
+        ),
+        floatingActionButtonTheme: const FloatingActionButtonThemeData(
+          backgroundColor: Colors.black,
+        ),
       ),
-      home: const DashboardScreen(),
+      home: const LoginScreen(),
     );
   }
 }
