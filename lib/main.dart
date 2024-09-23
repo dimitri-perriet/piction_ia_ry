@@ -59,7 +59,7 @@ class MyApp extends StatelessWidget {
           backgroundColor: Colors.black,
         ),
       ),
-      home: const LoginScreen(),
+      home: const ChallengeInputScreen(),
     );
   }
 }

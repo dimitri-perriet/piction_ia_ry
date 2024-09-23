@@ -89,6 +89,8 @@ class ChallengeInputScreen extends StatelessWidget {
               onPressed: () {
               },
               child: const Icon(Icons.add),
+              //Style l'icon
+              backgroundColor: Colors.red,
             ),
           ],
         ),
