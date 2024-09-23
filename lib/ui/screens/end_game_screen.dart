@@ -13,7 +13,6 @@ class EndGameScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SizedBox(height: 20),
-            // Section de victoire
             Card(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(15.0),
@@ -35,33 +34,40 @@ class EndGameScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            // Résumé des rouges
-            const Text(
-              'Résumé de la partie des rouges',
-              style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Résumé des rouges
+                    const Text(
+                      'Résumé de la partie des rouges',
+                      style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildGameSummaryItem(context, 'Une poule sur un mur', 'Poulet', 'Volaille', 'Oiseau', '+25', '-8'),
+                    _buildGameSummaryItem(context, 'Une poule sur un mur', 'Mots manquants', '', '', '+25', '-8'),
+                    _buildGameSummaryItem(context, 'Une poule sur un mur', 'Mots manquants', '', '', '+25', '-8'),
+                    const SizedBox(height: 20),
+                    // Résumé des bleus
+                    const Text(
+                      'Résumé de la partie des bleus',
+                      style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildGameSummaryItem(context, 'Une poule sur un mur', 'Poulet', 'Volaille', 'Oiseau', '+25', '-8'),
+                    _buildGameSummaryItem(context, 'Une poule sur un mur', 'Mots manquants', '', '', '+25', '-8'),
+                    _buildGameSummaryItem(context, 'Une poule sur un mur', 'Mots manquants', '', '', '+25', '-8'),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 10),
-            _buildGameSummaryItem(context, 'Une poule sur un mur', 'Poulet', 'Volaille', 'Oiseau', '+25', '-8'),
-            _buildGameSummaryItem(context, 'Une poule sur un mur', 'Mots manquants', '', '', '+25', '-8'),
-            _buildGameSummaryItem(context, 'Une poule sur un mur', 'Mots manquants', '', '', '+25', '-8'),
-            const SizedBox(height: 20),
-            // Résumé des bleus
-            const Text(
-              'Résumé de la partie des bleus',
-              style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            _buildGameSummaryItem(context, 'Une poule sur un mur', 'Poulet', 'Volaille', 'Oiseau', '+25', '-8'),
-            _buildGameSummaryItem(context, 'Une poule sur un mur', 'Mots manquants', '', '', '+25', '-8'),
-            _buildGameSummaryItem(context, 'Une poule sur un mur', 'Mots manquants', '', '', '+25', '-8'),
-            const Spacer(),
           ],
         ),
       ),
     );
   }
 
-  // Widget pour créer chaque élément de résumé de partie
   Widget _buildGameSummaryItem(BuildContext context, String description, String chip1, String chip2, String chip3, String pointsWon, String pointsLost) {
     return Card(
       shape: RoundedRectangleBorder(
@@ -71,7 +77,6 @@ class EndGameScreen extends StatelessWidget {
         padding: const EdgeInsets.all(8.0),
         child: Row(
           children: [
-            // Image du challenge
             ClipRRect(
               borderRadius: BorderRadius.circular(15.0),
               child: Image.network(
@@ -82,7 +87,6 @@ class EndGameScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            // Description et Chips
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -100,7 +104,6 @@ class EndGameScreen extends StatelessWidget {
                 ],
               ),
             ),
-            // Points gagnés et perdus
             Column(
               children: [
                 Text(pointsWon, style: const TextStyle(color: Colors.green, fontSize: 16, fontWeight: FontWeight.bold)),
@@ -116,7 +119,6 @@ class EndGameScreen extends StatelessWidget {
     );
   }
 
-  // Widget pour créer les Chips
   Widget _buildChip(String label) {
     return Chip(
       label: Text(label),

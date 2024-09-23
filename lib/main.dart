@@ -67,7 +67,7 @@ class MyApp extends StatelessWidget {
           backgroundColor: Colors.red,
         ),
       ),
-      home: const SummaryDetailScreen(),
+      home: const EndGameScreen(),
     );
   }
 }
