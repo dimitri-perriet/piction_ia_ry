@@ -6,7 +6,7 @@ class GameScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue, // Fond bleu pour correspondre au thème du jeu
+      backgroundColor: Colors.blue,
       appBar: AppBar(
         title: const Text('Chrono 300'),
         centerTitle: true,
@@ -16,7 +16,6 @@ class GameScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Challenge actuel
             Card(
               color: Colors.white,
               shape: RoundedRectangleBorder(
@@ -54,37 +53,34 @@ class GameScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            // Image du dessin
             Image.network('https://picsum.photos/200/300', height: 200),
             const SizedBox(height: 20),
-            // Boutons d'action
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+            Column(
               children: [
                 ElevatedButton.icon(
                   onPressed: () {
-                    // Action pour régénérer l'image
                   },
                   icon: const Icon(Icons.refresh),
                   label: const Text('Régénérer l\'image (-50pts)'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.orange,
+                    minimumSize: const Size(double.infinity, 50), // Bouton prenant toute la largeur
                   ),
                 ),
+                const SizedBox(height: 10),
                 ElevatedButton.icon(
                   onPressed: () {
-                    // Action pour envoyer au devineur
                   },
                   icon: const Icon(Icons.send),
                   label: const Text('Envoyer au devineur'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
+                    minimumSize: const Size(double.infinity, 50), // Bouton prenant toute la largeur
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 20),
-            // Description de l'image
             Card(
               color: Colors.white,
               shape: RoundedRectangleBorder(
@@ -101,7 +97,6 @@ class GameScreen extends StatelessWidget {
             const Spacer(),
             ElevatedButton.icon(
               onPressed: () {
-                // Action pour le bouton en bas à droite
               },
               icon: const Icon(Icons.arrow_upward),
               label: const Text('Action supplémentaire'),
