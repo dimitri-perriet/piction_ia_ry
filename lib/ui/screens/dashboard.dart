@@ -1,9 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
-import 'loginscreen.dart'; // Import de la page LoginScreen
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart'; // Pour décoder le JWT
+import 'loginscreen.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({Key? key}) : super(key: key);
+
+  @override
+  _DashboardScreenState createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  String? userName; // Nom de l'utilisateur extrait du JWT
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData(); // Charger les données de l'utilisateur au démarrage
+  }
+
+  // Fonction pour charger et décoder le JWT
+  Future<void> _loadUserData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('jwt');
+
+    if (token != null) {
+      // Décoder le JWT et extraire les informations de l'utilisateur
+      try {
+        final jwt = JWT.decode(token);
+        setState(() {
+          userName = jwt.payload['name'];
+        });
+      } catch (e) {
+        print('Erreur lors du décodage du JWT : $e');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +53,7 @@ class DashboardScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              'Bonjour',
+              'Bonjour ${userName ?? ''}', // Afficher le nom de l'utilisateur après Bonjour
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 40),

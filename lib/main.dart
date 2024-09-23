@@ -4,6 +4,7 @@ import 'package:pictionnary/ui/screens/end_game_screen.dart';
 import 'package:pictionnary/ui/screens/game_screen.dart';
 import 'package:pictionnary/ui/screens/guess_screen.dart';
 import 'package:pictionnary/ui/screens/loading_screen.dart';
+import 'package:pictionnary/ui/screens/splashscreen.dart';
 import 'package:pictionnary/ui/screens/summary_detail_screen.dart';
 import 'package:pictionnary/ui/screens/team_composition.dart';
 import 'package:pictionnary/ui/screens/team_proposition.dart';
@@ -67,7 +68,7 @@ class MyApp extends StatelessWidget {
           backgroundColor: Colors.red,
         ),
       ),
-      home: const DashboardScreen(),
+      home: const SplashScreen(),
     );
   }
 }
