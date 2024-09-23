@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:pictionnary/ui/screens/drawing_screen.dart';
+import 'package:pictionnary/ui/screens/end_game_screen.dart';
+import 'package:pictionnary/ui/screens/game_screen.dart';
+import 'package:pictionnary/ui/screens/guess_screen.dart';
 import 'package:pictionnary/ui/screens/loading_screen.dart';
+import 'package:pictionnary/ui/screens/summary_detail_screen.dart';
 import 'package:pictionnary/ui/screens/team_composition.dart';
+import 'package:pictionnary/ui/screens/team_proposition.dart';
 import 'ui/screens/loginscreen.dart';
 import 'ui/screens/dashboard.dart';
 import 'ui/screens/challenge_input_screen.dart';
@@ -61,7 +67,7 @@ class MyApp extends StatelessWidget {
           backgroundColor: Colors.red,
         ),
       ),
-      home: const ChallengeInputScreen(),
+      home: const SummaryDetailScreen(),
     );
   }
 }
