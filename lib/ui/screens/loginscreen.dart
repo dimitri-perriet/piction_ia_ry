@@ -1,44 +1,70 @@
 import 'package:flutter/material.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
+
+  @override
+  _LoginScreenState createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _pseudoController = TextEditingController();
+
+  @override
+  void dispose() {
+    _pseudoController.dispose();
+    super.dispose();
+  }
+
+  void _submitForm() {
+    if (_formKey.currentState!.validate()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Pseudo valide: ${_pseudoController.text}')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Le texte utilise le style headlineMedium du thème global
-            Text(
-              'PICTION.IA.RY',
-              style: Theme.of(context).textTheme.headlineMedium!.copyWith(
-                fontSize: 36, // Ajustement spécifique pour ce texte
-              ),
-            ),
-            const SizedBox(height: 60),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: TextField(
-                decoration: InputDecoration(
-                  border: const OutlineInputBorder(),
-                  labelText: 'Saisir le pseudo',
-                  labelStyle: Theme.of(context).textTheme.bodyMedium,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'PICTION.IA.RY',
+                style: Theme.of(context).textTheme.headlineMedium!.copyWith(
+                  fontSize: 36,
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                // Action du bouton
-              },
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+              const SizedBox(height: 60),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: TextFormField(
+                  controller: _pseudoController,
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    labelText: 'Saisir le pseudo',
+                    labelStyle: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Veuillez saisir un pseudo';
+                    }
+                    return null;
+                  },
+                ),
               ),
-              child: const Text('Enregistrer'),
-            ),
-          ],
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _submitForm,
+                child: const Text('Se connecter'),
+              ),
+            ],
+          ),
         ),
       ),
     );
