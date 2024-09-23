@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'loginscreen.dart'; // Import de la page LoginScreen
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({Key? key}) : super(key: key);
@@ -25,7 +26,11 @@ class DashboardScreen extends StatelessWidget {
             const SizedBox(height: 40),
             ElevatedButton(
               onPressed: () {
-                // Logique pour démarrer une nouvelle partie
+                // Rediriger vers LoginScreen
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                );
               },
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
@@ -122,11 +127,13 @@ class _QRScannerModalState extends State<QRScannerModal> {
         result = scanData;
       });
 
-      // Vous pouvez fermer le scanner une fois le QR code scanné
-      if (result != null) {
-        Navigator.pop(context);  // Fermer la modal
-        // Logique pour rejoindre la partie avec le code QR détecté
-      }
+      // Attendre un court instant avant de fermer la modal
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);  // Fermer la modal
+          // Logique pour rejoindre la partie avec le code QR détecté
+        }
+      });
     });
   }
 }
