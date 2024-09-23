@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:pictionnary/ui/screens/loading_screen.dart';
+import 'package:pictionnary/ui/screens/team_composition.dart';
 import 'ui/screens/loginscreen.dart';
 import 'ui/screens/dashboard.dart';
 import 'ui/screens/challenge_input_screen.dart';
@@ -56,7 +58,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: Colors.black,
+          backgroundColor: Colors.red,
         ),
       ),
       home: const ChallengeInputScreen(),
