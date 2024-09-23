@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 
-class ChallengeInputScreen extends StatelessWidget {
+class ChallengeInputScreen extends StatefulWidget {
   const ChallengeInputScreen({Key? key}) : super(key: key);
 
+  @override
+  _ChallengeInputScreenState createState() => _ChallengeInputScreenState();
+}
+
+class _ChallengeInputScreenState extends State<ChallengeInputScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
