@@ -6,8 +6,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class TeamCompositionScreen extends StatefulWidget {
   final String sessionId;
+  final String userName;
 
-  const TeamCompositionScreen({Key? key, required this.sessionId}) : super(key: key);
+  const TeamCompositionScreen({Key? key, required this.sessionId, required this.userName}) : super(key: key);
 
   @override
   _TeamCompositionScreenState createState() => _TeamCompositionScreenState();
@@ -114,7 +115,6 @@ class _TeamCompositionScreenState extends State<TeamCompositionScreen> {
   Future<void> _joinTeam(String color) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? jwt = prefs.getString('jwt');
-    String userName = prefs.getString('userName') ?? 'Joueur';
 
     if (jwt == null) {
       setState(() {
@@ -137,10 +137,10 @@ class _TeamCompositionScreenState extends State<TeamCompositionScreen> {
       print('Objet GameSession retourné : ${response.body}');
       setState(() {
         if (color == 'blue') {
-          blueTeam.add(userName);
+          blueTeam.add(widget.userName);
           print('utilisateur ajouté à la blueTeam');
         } else {
-          redTeam.add(userName);
+          redTeam.add(widget.userName);
           print('utilisateur ajouté à la redTeam');
         }
         errorMessage = null; // Réinitialiser le message d'erreur
