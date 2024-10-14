@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:pictionnary/ui/screens/team_composition.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart'; // Pour décoder le JWT
-import 'loginscreen.dart';
+import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({Key? key}) : super(key: key);
@@ -13,21 +14,21 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  String? userName; // Nom de l'utilisateur extrait du JWT
+  String? userName;
+  bool _loading = false;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _loadUserData(); // Charger les données de l'utilisateur au démarrage
+    _loadUserData();
   }
 
-  // Fonction pour charger et décoder le JWT
   Future<void> _loadUserData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('jwt');
 
     if (token != null) {
-      // Décoder le JWT et extraire les informations de l'utilisateur
       try {
         final jwt = JWT.decode(token);
         setState(() {
@@ -36,6 +37,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
       } catch (e) {
         print('Erreur lors du décodage du JWT : $e');
       }
+    }
+  }
+
+  Future<void> _createGameSession() async {
+    setState(() {
+      _loading = true;
+      _errorMessage = null;
+    });
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? jwt = prefs.getString('jwt');
+
+    if (jwt == null) {
+      setState(() {
+        _errorMessage = 'Erreur : Utilisateur non authentifié';
+        _loading = false;
+      });
+      return;
+    }
+
+    final url = Uri.parse('https://pictioniary.wevox.cloud/api/game_sessions');
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $jwt',
+      },
+    );
+
+    if (response.statusCode == 201) {
+      final data = jsonDecode(response.body);
+      final String sessionId = data['id'].toString();
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TeamCompositionScreen(sessionId: sessionId),
+        ),
+      );
+    } else {
+      setState(() {
+        _errorMessage = 'Erreur lors de la création de la session' +
+            ' (${response.body})';
+        _loading = false;
+      });
     }
   }
 
@@ -54,40 +99,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 20),
             Text(
-              'Bonjour ${userName ?? ''}', // Afficher le nom de l'utilisateur après Bonjour
+              'Bonjour ${userName ?? ''}',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 40),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const TeamCompositionScreen()),
-                );
-              },
+            _loading
+                ? const CircularProgressIndicator()
+                : ElevatedButton(
+              onPressed: _createGameSession,
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 50, vertical: 15),
               ),
               child: const Text('Nouvelle partie'),
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: () {
-                _openQRScanner(context); // Ouvrir le scanner QR
+                _openQRScanner(context);
               },
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 30, vertical: 15),
               ),
               icon: const Icon(Icons.qr_code),
               label: const Text('Rejoindre une partie'),
             ),
+            const SizedBox(height: 20),
+            _errorMessage != null
+                ? Text(
+              _errorMessage!,
+              style: const TextStyle(color: Colors.red),
+            )
+                : Container(),
           ],
         ),
       ),
     );
   }
 
-  // Fonction pour ouvrir la modal du scanner QR
   void _openQRScanner(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -98,6 +148,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 }
+
 
 class QRScannerModal extends StatefulWidget {
   const QRScannerModal({Key? key}) : super(key: key);
