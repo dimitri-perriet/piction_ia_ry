@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pictionnary/ui/screens/team_composition.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart'; // Pour décoder le JWT
@@ -59,10 +60,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 40),
             ElevatedButton(
               onPressed: () {
-                // Rediriger vers LoginScreen
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  MaterialPageRoute(builder: (context) => const TeamCompositionScreen()),
                 );
               },
               style: ElevatedButton.styleFrom(
