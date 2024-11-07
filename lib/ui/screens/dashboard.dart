@@ -69,6 +69,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (response.statusCode == 201) {
       final data = jsonDecode(response.body);
       final String sessionId = data['id'].toString();
+      setState(() {
+        _loading = false;
+      });
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -82,6 +85,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _loading = false;
       });
     }
+  }
+
+  Future<void> _joinGameSession(String sessionId) async {
+    Navigator.pop(context); // Close the QR scanner modal
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? jwt = prefs.getString('jwt');
+
+    if (jwt == null) {
+      setState(() {
+        _errorMessage = 'Erreur : Utilisateur non authentifié';
+      });
+      return;
+    }
+
+    // Navigate directly to TeamCompositionScreen and let it handle team assignment
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TeamCompositionScreen(sessionId: sessionId),
+      ),
+    );
   }
 
   @override
@@ -143,15 +167,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       context: context,
       isScrollControlled: true,
       builder: (BuildContext context) {
-        return const QRScannerModal();
+        return QRScannerModal(onScanComplete: _joinGameSession);
       },
     );
   }
 }
 
-
 class QRScannerModal extends StatefulWidget {
-  const QRScannerModal({Key? key}) : super(key: key);
+  final Function(String sessionId) onScanComplete;
+
+  const QRScannerModal({Key? key, required this.onScanComplete}) : super(key: key);
 
   @override
   _QRScannerModalState createState() => _QRScannerModalState();
@@ -159,7 +184,6 @@ class QRScannerModal extends StatefulWidget {
 
 class _QRScannerModalState extends State<QRScannerModal> {
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
-  Barcode? result;
   QRViewController? controller;
 
   @override
@@ -171,7 +195,7 @@ class _QRScannerModalState extends State<QRScannerModal> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.8, // Hauteur de la modal
+      height: MediaQuery.of(context).size.height * 0.8,
       child: Column(
         children: [
           const SizedBox(height: 20),
@@ -194,30 +218,25 @@ class _QRScannerModalState extends State<QRScannerModal> {
             ),
           ),
           const SizedBox(height: 20),
-          result != null
-              ? Text('Code QR détecté: ${result!.code}')
-              : const Text('Aucun code détecté'),
-          const SizedBox(height: 20),
         ],
       ),
     );
   }
 
-  // Fonction appelée lors de la création du scanner QR
   void _onQRViewCreated(QRViewController controller) {
     this.controller = controller;
     controller.scannedDataStream.listen((scanData) {
-      setState(() {
-        result = scanData;
-      });
+      controller.pauseCamera();
+      final sessionId = scanData.code;
 
-      // Attendre un court instant avant de fermer la modal
-      Future.delayed(const Duration(milliseconds: 300), () {
-        if (Navigator.canPop(context)) {
-          Navigator.pop(context);  // Fermer la modal
-          // Logique pour rejoindre la partie avec le code QR détecté
-        }
-      });
+      if (sessionId != null && sessionId.isNotEmpty) {
+        widget.onScanComplete(sessionId);
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Code QR invalide')),
+        );
+      }
     });
   }
 }

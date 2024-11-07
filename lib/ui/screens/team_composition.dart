@@ -1,10 +1,165 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class TeamCompositionScreen extends StatelessWidget {
-  final String sessionId; // Ajout de l'ID de session comme paramètre
+class TeamCompositionScreen extends StatefulWidget {
+  final String sessionId;
 
   const TeamCompositionScreen({Key? key, required this.sessionId}) : super(key: key);
+
+  @override
+  _TeamCompositionScreenState createState() => _TeamCompositionScreenState();
+}
+
+class _TeamCompositionScreenState extends State<TeamCompositionScreen> {
+  String? jwt;
+  List<String> blueTeam = []; // Holds the list of players in the blue team
+  List<String> redTeam = [];  // Holds the list of players in the red team
+
+  @override
+  void initState() {
+    super.initState();
+    _loadJwtAndShowTeamSelectionModal();
+  }
+
+  Future<void> _loadJwtAndShowTeamSelectionModal() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    jwt = prefs.getString('jwt');
+
+    if (jwt != null) {
+      await _fetchTeamComposition(); // Fetch the current team composition
+      _showTeamSelectionModal();
+    } else {
+      _showMessage("Impossible de récupérer le JWT.");
+    }
+  }
+
+  Future<void> _fetchTeamComposition() async {
+    final response = await http.get(
+      Uri.parse('https://pictioniary.wevox.cloud/api/game_sessions/${widget.sessionId}'),
+      headers: {
+        'Authorization': 'Bearer $jwt',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final gameSession = json.decode(response.body);
+      List<dynamic> blueTeamIds = gameSession['blue_team'] ?? [];
+      List<dynamic> redTeamIds = gameSession['red_team'] ?? [];
+
+      // Fetch the names for each player in both teams
+      List<String> blueTeamNames = await Future.wait(blueTeamIds.map((id) => _fetchPlayerName(id)));
+      List<String> redTeamNames = await Future.wait(redTeamIds.map((id) => _fetchPlayerName(id)));
+
+      setState(() {
+        blueTeam = blueTeamNames;
+        redTeam = redTeamNames;
+      });
+    } else {
+      _showMessage("Impossible de récupérer les détails de la session.");
+    }
+  }
+
+// Helper function to fetch a player's name by their ID
+  Future<String> _fetchPlayerName(int playerId) async {
+    final response = await http.get(
+      Uri.parse('https://pictioniary.wevox.cloud/api/players/$playerId'),
+      headers: {
+        'Authorization': 'Bearer $jwt',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final playerData = json.decode(response.body);
+      return playerData['name'] ?? 'Inconnu'; // Return 'Inconnu' if the name is not available
+    } else {
+      return 'Inconnu'; // Return a placeholder if the request fails
+    }
+  }
+
+  Future<void> _showTeamSelectionModal() async {
+    final response = await http.get(
+      Uri.parse('https://pictioniary.wevox.cloud/api/game_sessions/${widget.sessionId}'),
+      headers: {
+        'Authorization': 'Bearer $jwt',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final gameSession = json.decode(response.body);
+      final currentBlueTeam = gameSession['blue_team'] ?? [];
+      final currentRedTeam = gameSession['red_team'] ?? [];
+
+      bool canJoinRed = currentRedTeam.length < 2;
+      bool canJoinBlue = currentBlueTeam.length < 2;
+
+      if (canJoinRed || canJoinBlue) {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Choisissez une équipe'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (canJoinBlue)
+                    ElevatedButton(
+                      onPressed: () {
+                        _joinTeam("blue");
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text('Rejoindre l\'équipe Bleue'),
+                    ),
+                  if (canJoinRed)
+                    ElevatedButton(
+                      onPressed: () {
+                        _joinTeam("red");
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text('Rejoindre l\'équipe Rouge'),
+                    ),
+                ],
+              ),
+            );
+          },
+        );
+      } else {
+        _showMessage("Aucune place disponible dans les équipes.");
+      }
+    } else {
+      _showMessage("Impossible de récupérer les détails de la session.");
+    }
+  }
+
+  Future<void> _joinTeam(String color) async {
+    try {
+      final joinResponse = await http.post(
+        Uri.parse('https://pictioniary.wevox.cloud/api/game_sessions/${widget.sessionId}/join'),
+        headers: {
+          'Authorization': 'Bearer $jwt',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({'color': color}),
+      );
+
+      if (joinResponse.statusCode == 200) {
+        _showMessage("Rejoint avec succès l'équipe $color !");
+        await _fetchTeamComposition(); // Refresh the team composition
+      } else {
+        _showMessage("Échec de la jonction de l'équipe. Veuillez réessayer.");
+      }
+    } catch (error) {
+      _showMessage("Une erreur s'est produite : $error");
+    }
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,18 +185,18 @@ class TeamCompositionScreen extends StatelessWidget {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 10),
-            _buildTeamTile(context, color: Colors.blue),
+            _buildTeamTile(context, color: Colors.blue, players: blueTeam),
             const SizedBox(height: 40),
             Text(
               'Equipe Rouge',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 10),
-            _buildTeamTile(context, color: Colors.red),
+            _buildTeamTile(context, color: Colors.red, players: redTeam),
             const Spacer(),
             ElevatedButton.icon(
               onPressed: () {
-                _showQRCodeDialog(context, sessionId); // Appel à la méthode pour afficher le QR code
+                _showQRCodeDialog(context, widget.sessionId);
               },
               icon: const Icon(Icons.qr_code),
               label: const Text('Inviter des amis'),
@@ -58,8 +213,7 @@ class TeamCompositionScreen extends StatelessWidget {
     );
   }
 
-  // Widget pour construire la tuile d'équipe
-  Widget _buildTeamTile(BuildContext context, {required Color color}) {
+  Widget _buildTeamTile(BuildContext context, {required Color color, required List<String> players}) {
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
@@ -75,26 +229,23 @@ class TeamCompositionScreen extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        children: players.isNotEmpty
+            ? players.map((player) => Text(player, style: Theme.of(context).textTheme.bodyLarge!.copyWith(color: Colors.white))).toList()
+            : [
           Text(
             '<en attente>',
-            style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-              color: Colors.white,
-            ),
+            style: Theme.of(context).textTheme.bodyLarge!.copyWith(color: Colors.white),
           ),
           const SizedBox(height: 10),
           Text(
             '<en attente>',
-            style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-              color: Colors.white,
-            ),
+            style: Theme.of(context).textTheme.bodyLarge!.copyWith(color: Colors.white),
           ),
         ],
       ),
     );
   }
 
-  // Méthode pour afficher le QR code dans un Dialog
   void _showQRCodeDialog(BuildContext context, String sessionId) {
     showDialog(
       context: context,
@@ -123,7 +274,7 @@ class TeamCompositionScreen extends StatelessWidget {
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.of(context).pop(); // Ferme le Dialog
+                    Navigator.of(context).pop();
                   },
                   child: const Text('Fermer'),
                 ),
