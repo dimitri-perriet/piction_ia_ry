@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -16,13 +17,29 @@ class TeamCompositionScreen extends StatefulWidget {
 
 class _TeamCompositionScreenState extends State<TeamCompositionScreen> {
   String? jwt;
-  List<String> blueTeam = []; // Holds the list of players in the blue team
-  List<String> redTeam = [];  // Holds the list of players in the red team
+  List<String> blueTeam = [];
+  List<String> redTeam = [];
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
     _loadJwtAndShowTeamSelectionModal();
+    _startPeriodicUpdate();
+  }
+
+  // Fonction pour démarrer la mise à jour périodique
+  void _startPeriodicUpdate() {
+    _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      _fetchTeamComposition();
+    });
+  }
+
+  // Arrêter le timer lorsque le widget est retiré
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadJwtAndShowTeamSelectionModal() async {
@@ -30,7 +47,7 @@ class _TeamCompositionScreenState extends State<TeamCompositionScreen> {
     jwt = prefs.getString('jwt');
 
     if (jwt != null) {
-      await _fetchTeamComposition(); // Fetch the current team composition
+      await _fetchTeamComposition();
       _showTeamSelectionModal();
     } else {
       _showMessage("Impossible de récupérer le JWT.");
@@ -50,7 +67,6 @@ class _TeamCompositionScreenState extends State<TeamCompositionScreen> {
       List<dynamic> blueTeamIds = gameSession['blue_team'] ?? [];
       List<dynamic> redTeamIds = gameSession['red_team'] ?? [];
 
-      // Fetch the names for each player in both teams
       List<String> blueTeamNames = await Future.wait(blueTeamIds.map((id) => _fetchPlayerName(id)));
       List<String> redTeamNames = await Future.wait(redTeamIds.map((id) => _fetchPlayerName(id)));
 
@@ -63,7 +79,6 @@ class _TeamCompositionScreenState extends State<TeamCompositionScreen> {
     }
   }
 
-// Helper function to fetch a player's name by their ID
   Future<String> _fetchPlayerName(int playerId) async {
     final response = await http.get(
       Uri.parse('https://pictioniary.wevox.cloud/api/players/$playerId'),
@@ -74,9 +89,9 @@ class _TeamCompositionScreenState extends State<TeamCompositionScreen> {
 
     if (response.statusCode == 200) {
       final playerData = json.decode(response.body);
-      return playerData['name'] ?? 'Inconnu'; // Return 'Inconnu' if the name is not available
+      return playerData['name'] ?? 'Inconnu';
     } else {
-      return 'Inconnu'; // Return a placeholder if the request fails
+      return 'Inconnu';
     }
   }
 
@@ -148,7 +163,7 @@ class _TeamCompositionScreenState extends State<TeamCompositionScreen> {
 
       if (joinResponse.statusCode == 200) {
         _showMessage("Rejoint avec succès l'équipe $color !");
-        await _fetchTeamComposition(); // Refresh the team composition
+        await _fetchTeamComposition();
       } else {
         _showMessage("Échec de la jonction de l'équipe. Veuillez réessayer.");
       }
