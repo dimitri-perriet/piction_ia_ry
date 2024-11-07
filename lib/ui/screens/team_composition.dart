@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'dart:math';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'challenge_input_screen.dart';
 
 class TeamCompositionScreen extends StatefulWidget {
   final String sessionId;
@@ -70,7 +70,13 @@ class _TeamCompositionScreenState extends State<TeamCompositionScreen> {
       final gameSession = json.decode(response.body);
       List<dynamic> blueTeamIds = gameSession['blue_team'] ?? [];
       List<dynamic> redTeamIds = gameSession['red_team'] ?? [];
-      creatorId = gameSession['player_id'].toString(); // ID of the session creator
+      creatorId = gameSession['player_id'].toString();
+
+      final gameStatus = gameSession['status'];
+      if (gameStatus == 'challenge') {
+        _navigateToChallengeScreen();
+        return; // Exit to avoid further state updates
+      }
 
       List<String> blueTeamNames = await Future.wait(blueTeamIds.map((id) => _fetchPlayerName(id)));
       List<String> redTeamNames = await Future.wait(redTeamIds.map((id) => _fetchPlayerName(id)));
@@ -190,6 +196,15 @@ class _TeamCompositionScreenState extends State<TeamCompositionScreen> {
     } else {
       _showMessage("Erreur lors du démarrage de la partie.");
     }
+  }
+
+  void _navigateToChallengeScreen() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChallengeInputScreen(sessionId: widget.sessionId),
+      ),
+    );
   }
 
   void _showMessage(String message) {
