@@ -17,6 +17,8 @@ class TeamCompositionScreen extends StatefulWidget {
 
 class _TeamCompositionScreenState extends State<TeamCompositionScreen> {
   String? jwt;
+  String? creatorId;
+  String? userId;
   List<String> blueTeam = [];
   List<String> redTeam = [];
   Timer? _timer;
@@ -28,14 +30,12 @@ class _TeamCompositionScreenState extends State<TeamCompositionScreen> {
     _startPeriodicUpdate();
   }
 
-  // Fonction pour démarrer la mise à jour périodique
   void _startPeriodicUpdate() {
     _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
       _fetchTeamComposition();
     });
   }
 
-  // Arrêter le timer lorsque le widget est retiré
   @override
   void dispose() {
     _timer?.cancel();
@@ -47,6 +47,10 @@ class _TeamCompositionScreenState extends State<TeamCompositionScreen> {
     jwt = prefs.getString('jwt');
 
     if (jwt != null) {
+      final jwtDecoded = json.decode(
+        utf8.decode(base64.decode(base64.normalize(jwt!.split(".")[1]))),
+      );
+      userId = jwtDecoded['id'].toString();
       await _fetchTeamComposition();
       _showTeamSelectionModal();
     } else {
@@ -66,6 +70,7 @@ class _TeamCompositionScreenState extends State<TeamCompositionScreen> {
       final gameSession = json.decode(response.body);
       List<dynamic> blueTeamIds = gameSession['blue_team'] ?? [];
       List<dynamic> redTeamIds = gameSession['red_team'] ?? [];
+      creatorId = gameSession['player_id'].toString(); // ID of the session creator
 
       List<String> blueTeamNames = await Future.wait(blueTeamIds.map((id) => _fetchPlayerName(id)));
       List<String> redTeamNames = await Future.wait(redTeamIds.map((id) => _fetchPlayerName(id)));
@@ -172,12 +177,30 @@ class _TeamCompositionScreenState extends State<TeamCompositionScreen> {
     }
   }
 
+  Future<void> _startGame() async {
+    final response = await http.post(
+      Uri.parse('https://pictioniary.wevox.cloud/api/game_sessions/${widget.sessionId}/start'),
+      headers: {
+        'Authorization': 'Bearer $jwt',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      _showMessage("La partie a commencé !");
+    } else {
+      _showMessage("Erreur lors du démarrage de la partie.");
+    }
+  }
+
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
+    bool isCreator = userId == creatorId;
+    bool canStartGame = blueTeam.length == 2 && redTeam.length == 2;
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -209,6 +232,12 @@ class _TeamCompositionScreenState extends State<TeamCompositionScreen> {
             const SizedBox(height: 10),
             _buildTeamTile(context, color: Colors.red, players: redTeam),
             const Spacer(),
+            if (isCreator && canStartGame)
+              ElevatedButton(
+                onPressed: _startGame,
+                child: const Text('Lancer la partie'),
+              ),
+            const SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: () {
                 _showQRCodeDialog(context, widget.sessionId);
