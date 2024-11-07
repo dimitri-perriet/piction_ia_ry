@@ -232,8 +232,11 @@ class _QRScannerModalState extends State<QRScannerModal> {
       final sessionId = scanData.code;
 
       if (sessionId != null && sessionId.isNotEmpty) {
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+
         widget.onScanComplete(sessionId);
-        Navigator.pop(context);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Code QR invalide')),
