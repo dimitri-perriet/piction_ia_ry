@@ -75,7 +75,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => TeamCompositionScreen(sessionId: sessionId),
+          builder: (context) => TeamCompositionScreen(
+            sessionId: sessionId,
+          ),
         ),
       );
     } else {
