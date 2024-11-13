@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'loading_screen.dart';
 
 class ChallengeInputScreen extends StatefulWidget {
   final String sessionId;
@@ -48,6 +49,12 @@ class _ChallengeInputScreenState extends State<ChallengeInputScreen> {
       });
       Navigator.of(context).pop(); // Close modal
       _showMessage("Challenge ajouté avec succès !");
+
+      if (challenges.length == 3) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => LoadingScreen(sessionId: widget.sessionId)),
+        );
+      }
     } else {
       _showMessage("Erreur lors de l'ajout du challenge.");
     }
