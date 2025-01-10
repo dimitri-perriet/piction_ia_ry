@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'game_screen.dart';
+import 'guess_screen.dart';
 
 class LoadingScreen extends StatefulWidget {
   final String sessionId;
@@ -17,6 +18,7 @@ class LoadingScreen extends StatefulWidget {
 class _LoadingScreenState extends State<LoadingScreen> {
   Timer? _timer;
   String? jwt;
+  int? userId; // Décodé à partir du JWT
 
   @override
   void initState() {
@@ -27,19 +29,37 @@ class _LoadingScreenState extends State<LoadingScreen> {
 
   Future<void> _loadJwt() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      jwt = prefs.getString('jwt');
-    });
+    final token = prefs.getString('jwt');
+    if (token != null) {
+      setState(() {
+        jwt = token;
+        userId = _decodeJwtUserId(token);
+      });
+    }
+  }
+
+  /// Décode le JWT pour extraire l'ID de l'utilisateur
+  int? _decodeJwtUserId(String token) {
+    try {
+      final payload = token.split('.')[1];
+      final normalized = base64.normalize(payload);
+      final decoded = utf8.decode(base64.decode(normalized));
+      final Map<String, dynamic> payloadMap = json.decode(decoded);
+      return payloadMap['id'];
+    } catch (e) {
+      debugPrint('Erreur de décodage JWT: $e');
+      return null;
+    }
   }
 
   void _startStatusCheck() {
-    _timer = Timer.periodic(Duration(seconds: 2), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 2), (timer) {
       _checkSessionStatus();
     });
   }
 
   Future<void> _checkSessionStatus() async {
-    if (jwt == null) return;
+    if (jwt == null || userId == null) return;
 
     final url = Uri.parse('https://pictioniary.wevox.cloud/api/game_sessions/${widget.sessionId}');
     final response = await http.get(
@@ -52,15 +72,50 @@ class _LoadingScreenState extends State<LoadingScreen> {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      if (data['status'] == 'drawing') {
+      final status = data['status'];
+
+      if (status == 'drawing') {
+        final challenges = data['challenges'] as List<dynamic>;
+        final hasPendingImages = _hasPendingImages(challenges, userId!);
+
+
+        if (hasPendingImages) {
+          _timer?.cancel();
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => GameScreen(
+                gameSessionId: widget.sessionId,
+              ),
+            ),
+          );
+        }
+      } else if (status == 'guessing') {
+        debugPrint('Phase de guessing. Redirection vers GuessScreen.');
         _timer?.cancel();
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => GameScreen()),
+          MaterialPageRoute(
+            builder: (context) => GuessScreen(
+              gameSessionId: widget.sessionId,
+            ),
+          ),
         );
+      } else {
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur lors de la vérification du statut de la session.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur lors de la vérification du statut de la session.')),
+      );
     }
+  }
+
+  /// Vérifie si l'utilisateur (challenger_id) a encore des images à générer
+  bool _hasPendingImages(List<dynamic> challenges, int userId) {
+    for (var challenge in challenges) {
+      if (challenge['challenged_id'] == userId && challenge['image_path'] == null) {
+        return true; // Au moins une image à générer
+      }
+    }
+    return false; // Toutes les images sont générées
   }
 
   @override
