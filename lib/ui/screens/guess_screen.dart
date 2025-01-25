@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'summary_detail_screen.dart';
+
 
 class GuessScreen extends StatefulWidget {
   final String gameSessionId;
@@ -17,8 +19,11 @@ class _GuessScreenState extends State<GuessScreen> {
   late List<dynamic> challenges = [];
   int currentChallengeIndex = 0;
   Timer? _timer;
-  int _timeLeft = 300; // Chrono initial de 300 secondes
+  Timer? _statusCheckTimer;
+  int _globalTimeLeft = 300; // Timer global pour tous les défis
   String? jwt;
+  bool isWaitingForOthers = false;
+  bool isAnswering = false;
   final TextEditingController _secondWordController = TextEditingController();
   final TextEditingController _fifthWordController = TextEditingController();
 
@@ -26,21 +31,23 @@ class _GuessScreenState extends State<GuessScreen> {
   void initState() {
     super.initState();
     _loadJwtAndFetchChallenges();
+    _startStatusCheck(); // Vérification régulière du statut
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _statusCheckTimer?.cancel();
     _secondWordController.dispose();
     _fifthWordController.dispose();
     super.dispose();
   }
 
   Future<void> _loadJwtAndFetchChallenges() async {
-    await _loadJwt(); // Charge le token
+    await _loadJwt();
     if (jwt != null) {
       await _fetchChallenges();
-      _startTimer();
+      _startGlobalTimer();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Erreur : Token introuvable.')),
@@ -78,21 +85,47 @@ class _GuessScreenState extends State<GuessScreen> {
     }
   }
 
-  void _startTimer() {
+  void _startGlobalTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_timeLeft > 0) {
+      if (_globalTimeLeft > 0) {
         setState(() {
-          _timeLeft--;
+          _globalTimeLeft--;
         });
       } else {
         timer.cancel();
-        _sendEmptyAnswer(); // Envoie une réponse vide si le temps est expiré
+        _sendEmptyAnswer(); // Temps écoulé, envoie une réponse vide
+      }
+    });
+  }
+
+  void _startStatusCheck() {
+    _statusCheckTimer = Timer.periodic(const Duration(seconds: 30), (timer) async {
+      final url = Uri.parse('https://pictioniary.wevox.cloud/api/game_sessions/${widget.gameSessionId}/status');
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $jwt',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final status = jsonDecode(response.body)['status'];
+        if (status == 'finished') {
+          timer.cancel();
+          _navigateToSummaryScreen();
+        }
       }
     });
   }
 
   Future<void> _sendAnswer() async {
+    if (isAnswering) return; // Empêche les multiples réponses simultanées
+    setState(() {
+      isAnswering = true;
+    });
+
     final currentChallenge = challenges[currentChallengeIndex];
     final challengeId = currentChallenge['id'];
 
@@ -104,26 +137,36 @@ class _GuessScreenState extends State<GuessScreen> {
 
     final answer = '$firstWord $secondWord $thirdWord $fourthWord $fifthWord';
 
-    // Détermine si la réponse est correcte
     final isResolved = secondWord.toLowerCase() == currentChallenge['second_word'].toLowerCase() &&
         fifthWord.toLowerCase() == currentChallenge['fifth_word'].toLowerCase();
 
     await _postAnswer(challengeId, answer, isResolved);
+    if (isResolved) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bonne réponse !')));
+      _nextChallenge();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mauvaise réponse !')));
+    }
+
+    setState(() {
+      isAnswering = false;
+    });
   }
 
   Future<void> _sendEmptyAnswer() async {
     final currentChallenge = challenges[currentChallengeIndex];
     final challengeId = currentChallenge['id'];
 
-    // Envoie une réponse vide avec is_resolved à false
     await _postAnswer(challengeId, "", false);
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Défi abandonné.')));
+    _nextChallenge();
   }
 
   Future<void> _postAnswer(int challengeId, String answer, bool isResolved) async {
     final url = Uri.parse(
         'https://pictioniary.wevox.cloud/api/game_sessions/${widget.gameSessionId}/challenges/$challengeId/answer');
 
-    final response = await http.post(
+    await http.post(
       url,
       headers: {
         'Authorization': 'Bearer $jwt',
@@ -134,36 +177,31 @@ class _GuessScreenState extends State<GuessScreen> {
         "is_resolved": isResolved,
       }),
     );
-
-    if (response.statusCode == 200) {
-      if (answer.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(isResolved ? 'Bonne réponse !' : 'Mauvaise réponse !')),
-        );
-      }
-      _nextChallenge();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erreur lors de l\'envoi de la réponse.')),
-      );
-    }
   }
 
   void _nextChallenge() {
     if (currentChallengeIndex < challenges.length - 1) {
       setState(() {
         currentChallengeIndex++;
-        _timeLeft = 300; // Réinitialise le chrono pour le prochain défi
         _secondWordController.clear();
         _fifthWordController.clear();
       });
-      _startTimer();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Tous les défis ont été résolus')),
-      );
+      setState(() {
+        isWaitingForOthers = true;
+      });
     }
   }
+
+  void _navigateToSummaryScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SummaryDetailScreen(gameSessionId: '${widget.gameSessionId}'),
+      ),
+    );
+  }
+
 
   String _formatTime(int seconds) {
     final minutes = seconds ~/ 60;
@@ -173,6 +211,13 @@ class _GuessScreenState extends State<GuessScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (isWaitingForOthers) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('En attente des autres joueurs...')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     if (jwt == null || challenges.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: const Text('Chargement...')),
@@ -184,7 +229,7 @@ class _GuessScreenState extends State<GuessScreen> {
     return Scaffold(
       backgroundColor: Colors.blue,
       appBar: AppBar(
-        title: Text('Chrono ${_formatTime(_timeLeft)}'),
+        title: Text('Chrono ${_formatTime(_globalTimeLeft)}'),
         centerTitle: true,
       ),
       body: Padding(
@@ -192,13 +237,11 @@ class _GuessScreenState extends State<GuessScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Image du défi en cours
             if (currentChallenge['image_path'] != null)
               Image.network(currentChallenge['image_path'], height: 200)
             else
               const Text('Aucune image disponible.', style: TextStyle(color: Colors.white)),
             const SizedBox(height: 20),
-            // Affichage des mots et inputs
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -255,7 +298,7 @@ class _GuessScreenState extends State<GuessScreen> {
               onPressed: _sendEmptyAnswer,
               child: const Text('Abandonner'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red, // Bouton rouge
+                backgroundColor: Colors.red,
                 minimumSize: const Size(double.infinity, 50),
               ),
             ),
