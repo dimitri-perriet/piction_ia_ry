@@ -106,41 +106,47 @@ class _SummaryDetailScreenState extends State<SummaryDetailScreen> {
   }
 
   Map<String, int> _calculatePoints(Map<String, dynamic> challenge) {
+    // Récupération des propositions
     final List<dynamic> proposals = challenge['proposals'] != null
         ? jsonDecode(challenge['proposals'])
         : [];
+
+    // Nombre d’images générées
+    // - `previous_images` contient les URLs ou chemins d’images générées
+    // - Par défaut, on considère qu’il y a au moins 1 image (la première génération)
     final int imagesGenerated = challenge['previous_images'] != null
         ? jsonDecode(challenge['previous_images']).length
         : 1;
 
-    // Regles pour les  points
-    int challengerPoints = 50; // Points pour créer le défi
-    int challengedPoints = 100; // Points pour créer l'image
-    //ON NE PEUT PAS DETERMINE QUI EST LE GUESSEUR DONC INUTILE
-    int guesserPoints = 0; // Points pour celui qui devine
+    // Joueurs
+    // - "challenger" = Devineur
+    // - "challenged" = Dessinateur
+    int challengerPoints = 0;
+    int challengedPoints = 0;
 
-    // Challenger: moins il y a de propositions, plus il gagne de points
-    challengerPoints += (proposals.length <= 3) ? 30 : 0; // Bonus si <= 3 propositions
-    challengerPoints -= (proposals.length * 10); // Pénalité par proposition
+    // --- Calcul pour le Dessinateur (challenged) ---
+    // Pénalité de 10 points pour chaque regénération au-delà de la première.
+    int regenerations = (imagesGenerated > 1) ? (imagesGenerated - 1) : 0;
+    challengedPoints -= (regenerations * 10);
 
-    // Challenged: moins il génère d'images, plus il gagne de points
-    challengedPoints -= ((imagesGenerated - 1) * 5); // Pénalité par image supplémentaire
-
-    //ON NE PEUT PAS DETERMINE QUI EST LE GUESSEUR DONC INUTILE
-    // Proposeur (guesser): gagne des points si le défi est résolu
+    // --- Calcul pour le Devineur (challenger) ---
     if (challenge['is_resolved'] == 1) {
-      guesserPoints = 50 + (100 ~/ (proposals.length + 1)); // Bonus si le défi est résolu rapidement
+      // S’il a fini par trouver la bonne réponse :
+      // - +50 points (2 mots x 25 points chacun, simplifié)
+      // - -1 point pour chaque tentative incorrecte
+      //   => Les tentatives incorrectes sont (proposals.length - 1)
+      //      si la dernière proposition est la bonne
+      challengerPoints += 50;
+      challengerPoints -= (proposals.length - 1);
+    } else {
+      // S’il n’a jamais trouvé la bonne réponse :
+      // - Chaque proposition est une tentative ratée => -1 par proposition
+      challengerPoints -= proposals.length;
     }
-
-    // S'assurer que les points ne deviennent pas négatifs
-    challengerPoints = challengerPoints < 0 ? 0 : challengerPoints;
-    challengedPoints = challengedPoints < 0 ? 0 : challengedPoints;
-    guesserPoints = guesserPoints < 0 ? 0 : guesserPoints;
 
     return {
       'challenger': challengerPoints,
       'challenged': challengedPoints,
-      'guesser': guesserPoints,
     };
   }
 
